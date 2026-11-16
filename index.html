@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PATHARLAPALLI VOTERS CHECK LIST</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --primary: #0f3452;
+      --primary-hover: #184b73;
+      --accent: #0d9488;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --input-border: #cbd5e1;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.07);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Inter", "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Sticky Top Header */
+    header {
+      background: linear-gradient(135deg, #0b253a 0%, var(--primary) 100%);
+      color: #fff;
+      padding: 15px 18px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.14);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.14);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: #5eead4;
+      flex-shrink: 0;
+    }
+
+    .header-title h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      line-height: 1.25;
+    }
+
+    .status-pill {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+
+    /* Main Container */
+    main.container {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 20px auto 32px;
+      padding: 0 14px;
+    }
+
+    /* Search Card */
+    .search-panel {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+    }
+
+    .search-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-group label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+    }
+
+    .field-group input,
+    .field-group select {
+      height: 44px;
+      padding: 0 13px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 9px;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: #f8fafc;
+      width: 100%;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+
+    .field-group input:focus,
+    .field-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+    }
+
+    .actions-bar {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      height: 40px;
+      padding: 0 18px;
+      border: none;
+      border-radius: 9px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s, transform 0.08s, opacity 0.15s;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-search {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-search:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    .btn-clear {
+      background: #e2e8f0;
+      color: #334155;
+    }
+
+    .btn-clear:hover:not(:disabled) {
+      background: #cbd5e1;
+    }
+
+    /* Stats Badges */
+    .stats-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .badge-total {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .badge-time {
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    /* Results Table Card */
+    .table-card {
+      margin-top: 20px;
+      background: var(--surface);
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 68vh;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+      padding: 13px 14px;
+      text-align: left;
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    thead th.center,
+    tbody td.center {
+      text-align: center;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    tbody td {
+      padding: 11px 14px;
+      font-size: 0.94rem;
+      vertical-align: middle;
+    }
+
+    .gpo-chip {
+      display: inline-block;
+      background: #e2e8f0;
+      color: #0f172a;
+      font-weight: 800;
+      padding: 4px 11px;
+      border-radius: 7px;
+      font-size: 0.92rem;
+    }
+
+    .gender-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .gender-m { background: #dbeafe; color: #1e40af; }
+    .gender-f { background: #fce7f3; color: #9d174d; }
+
+    .epic-code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.88rem;
+      background: #f1f5f9;
+      padding: 3px 8px;
+      border-radius: 5px;
+      color: #334155;
+    }
+
+    .voter-photo {
+      width: 54px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1.5px solid var(--input-border);
+      background: #f1f5f9;
+      cursor: zoom-in;
+      display: block;
+      margin: 0 auto;
+      transition: transform 0.15s;
+    }
+
+    .voter-photo:hover {
+      transform: scale(1.06);
+    }
+
+    /* Pagination Bar */
+    .pagination-bar {
+      padding: 14px 18px;
+      background: #f8fafc;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .page-info {
+      font-size: 0.86rem;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .page-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .page-btn {
+      height: 36px;
+      min-width: 36px;
+      padding: 0 11px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      background: #ffffff;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      background: #e2e8f0;
+    }
+
+    .page-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    .empty-state {
+      padding: 48px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    /* Footer */
+    footer {
+      background: black;
+      border-top: 1px solid var(--border);
+      padding: 16px 18px;
+      margin-top: auto;
+    }
+
+        .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: center;
+      font-size: 1 rem;
+      color:white;
+      padding: 10px;
+    }
+
+
+
+    /* Photo Zoom Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-card img {
+      width: 100%;
+      max-height: 330px;
+      object-fit: contain;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .modal-card h3 {
+      margin-top: 12px;
+      font-size: 1.02rem;
+      color: var(--primary);
+    }
+
+    .modal-card p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 4px 0 14px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0f172a;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 9px;
+      font-size: 0.86rem;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 120;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    /* ============================================================
+       TABLET & MOBILE RESPONSIVE VIEW
+       ============================================================ */
+    @media (max-width: 900px) {
+      .search-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 680px) {
+      .header-title h1 {
+        font-size: 1rem;
+      }
+
+      .search-panel {
+        padding: 15px;
+      }
+
+      .search-grid {
+        grid-template-columns: 1fr;
+        gap: 11px;
+      }
+
+      .btn-group {
+        width: 100%;
+      }
+
+      .btn-group button {
+        flex: 1;
+      }
+
+      .table-wrap {
+        max-height: none;
+        overflow-x: visible;
+      }
+
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tbody {
+        padding: 10px;
+        background: #f8fafc;
+      }
+
+      tbody tr {
+        margin-bottom: 12px;
+        border: 1.5px solid var(--input-border);
+        border-radius: 12px;
+        padding: 14px;
+        background: #ffffff;
+        box-shadow: var(--shadow-sm);
+      }
+
+      tbody tr:last-child {
+        margin-bottom: 0;
+      }
+
+      tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 0;
+        border-bottom: 1px dashed var(--border);
+        text-align: right !important;
+        gap: 10px;
+      }
+
+      tbody td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      tbody td::before {
+        content: attr(data-label);
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--muted);
+        text-align: left;
+        flex-shrink: 0;
+      }
+
+      .voter-photo {
+        margin: 0;
+        width: 60px;
+        height: 74px;
+      }
+
+      .pagination-bar {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .page-buttons {
+        justify-content: center;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">P</div>
+        <div class="header-title">
+          <h1>PATHARLAPALLI VOTERS CHECK LIST</h1>
+        </div>
+      </div>
+      <div class="status-pill">
+        <span class="dot" id="connDot"></span>
+        <span id="connText">Views: 0</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 5 Optional Search Fields -->
+    <section class="search-panel">
+      <form id="searchForm" autocomplete="off">
+        <div class="search-grid">
+          <div class="field-group">
+            <label for="gpovNo">1. G.P.VOTER LINE NUMBER</label>
+            <input type="number" id="gpovNo" name="gpov_no" placeholder="e.g. 1, 25, 104" min="1" />
+          </div>
+
+          <div class="field-group">
+            <label for="gender">2. Gender</label>
+            <select id="gender" name="gender">
+              <option value="">All Genders</option>
+              <option value="MALE">MALE</option>
+              <option value="FEMALE">FEMALE</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="voterName">3. Voter Name</label>
+            <input type="text" id="voterName" name="voter_name" placeholder="Partial or full name..." />
+          </div>
+
+          <div class="field-group">
+            <label for="relationName">4. Father / Husband Name</label>
+            <input type="text" id="relationName" name="relation_name" placeholder="Father or husband name..." />
+          </div>
+
+          <div class="field-group">
+            <label for="voterId">5. Voter ID</label>
+            <input type="text" id="voterId" name="voter_id" placeholder="e.g. WIA1055038" />
+          </div>
+        </div>
+
+        <div class="actions-bar">
+          <div class="btn-group">
+            <button type="submit" class="btn-search">Search Voters</button>
+            <button type="button" id="clearBtn" class="btn-clear">Clear All</button>
+          </div>
+
+          <div class="stats-bar">
+            <span class="badge badge-total" id="totalMatchesBadge">Matches: 0</span>
+            <span class="badge badge-time" id="queryTimeBadge">0 ms</span>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Results Table (Desktop) / Cards (Mobile) -->
+    <section class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="center">G.P.VOTER LINE NUMBER</th>
+              <th class="center">Gender</th>
+              <th>Voter Name</th>
+              <th>Father / Husband Name</th>
+              <th>Voter ID</th>
+              <th class="center">Photo</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr>
+              <td colspan="6" class="empty-state">
+                Loading first 100 voters...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Controls (100 records per page) -->
+      <div class="pagination-bar" id="paginationBar">
+        <div class="page-info" id="pageInfo">Showing 0 - 0 of 0</div>
+        <div class="page-controls" id="pageControls"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <p><strong>&copy; 2026 Design & Developed by Upendra </strong></p>
+  </footer>
+
+  <!-- Photo Zoom Modal -->
+  <div class="modal-backdrop" id="photoModal">
+    <div class="modal-card">
+      <img id="modalImg" src="" alt="Voter Portrait" />
+      <h3 id="modalName"></h3>
+      <p id="modalMeta"></p>
+      <button type="button" class="btn-clear" id="closeModalBtn" style="width:100%;">Close</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = "";
+    const PAGE_SIZE = 100;
+
+    const searchForm = document.getElementById("searchForm");
+    const clearBtn = document.getElementById("clearBtn");
+    const resultsBody = document.getElementById("resultsBody");
+    const pageInfo = document.getElementById("pageInfo");
+    const pageControls = document.getElementById("pageControls");
+
+    const totalMatchesBadge = document.getElementById("totalMatchesBadge");
+    const queryTimeBadge = document.getElementById("queryTimeBadge");
+    const connDot = document.getElementById("connDot");
+    const connText = document.getElementById("connText");
+    const toastEl = document.getElementById("toast");
+
+    let allMatchedResults = [];
+    let currentPage = 1;
+    let debounceTimer = null;
+
+    function showToast(msg, isError = false) {
+      toastEl.textContent = msg;
+      toastEl.style.background = isError ? "#b91c1c" : "#0f172a";
+      toastEl.classList.add("show");
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(() => toastEl.classList.remove("show"), 2200);
+    }
+
+    function escapeHtml(val) {
+      if (val === null || val === undefined) return "";
+      return String(val)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function updateCounters(rows, elapsedMs) {
+      totalMatchesBadge.textContent = `Matches: ${rows.length}`;
+      if (elapsedMs !== undefined) {
+        queryTimeBadge.textContent = `${elapsedMs} ms`;
+      }
+    }
+
+    function renderPagination(totalItems) {
+      const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIdx = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+      const endIdx = Math.min(currentPage * PAGE_SIZE, totalItems);
+      pageInfo.textContent = `Showing ${startIdx} - ${endIdx} of ${totalItems} (Page ${currentPage} of ${totalPages})`;
+
+      pageControls.innerHTML = "";
+      if (totalItems <= PAGE_SIZE) return;
+
+      const addBtn = (label, page, disabled = false, active = false) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "page-btn" + (active ? " active" : "");
+        btn.textContent = label;
+        btn.disabled = disabled;
+        btn.addEventListener("click", () => {
+          currentPage = page;
+          renderCurrentPage();
+          document.querySelector(".table-card").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        pageControls.appendChild(btn);
+      };
+
+      addBtn("Prev", currentPage - 1, currentPage === 1);
+
+      const windowSize = 2;
+      const startPage = Math.max(1, currentPage - windowSize);
+      const endPage = Math.min(totalPages, currentPage + windowSize);
+
+      if (startPage > 1) {
+        addBtn("1", 1, false, currentPage === 1);
+        if (startPage > 2) {
+          const dots = document.createElement("span");
+          dots.textContent = "...";
+          dots.style.padding = "0 4px";
+          dots.style.color = "#64748b";
+          pageControls.appendChild(dots);
+        }
+      }
+
+      for (let p = startPage; p <= endPage; p++) {
+        addBtn(String(p), p, false, p === currentPage);
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          const dots = document.createElement("span");
+          dots.textContent = "...";
+          dots.style.padding = "0 4px";
+          dots.style.color = "#64748b";
+          pageControls.appendChild(dots);
+        }
+        addBtn(String(totalPages), totalPages, false, currentPage === totalPages);
+      }
+
+      addBtn("Next", currentPage + 1, currentPage === totalPages);
+    }
+
+    function renderCurrentPage() {
+      const sorted = [...allMatchedResults].sort((a, b) => Number(a.gpov_no) - Number(b.gpov_no));
+      allMatchedResults = sorted;
+      updateCounters(sorted);
+      renderPagination(sorted.length);
+
+      if (sorted.length === 0) {
+        resultsBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">No matching voters found for the given filter(s).</td>
+          </tr>`;
+        return;
+      }
+
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const pageSlice = sorted.slice(start, start + PAGE_SIZE);
+      const fragment = document.createDocumentFragment();
+
+      pageSlice.forEach(voter => {
+        const tr = document.createElement("tr");
+        const genderUpper = (voter.gender || "").toUpperCase();
+        const genderClass = genderUpper === "FEMALE" ? "gender-f" : "gender-m";
+        const photoUrl = `${API_BASE}/voter_photos/${encodeURIComponent(voter.gpov_no)}.png`;
+
+        tr.innerHTML = `
+          <td class="center" data-label="G.P.VOTER LINE NUMBER"><span class="gpo-chip">${escapeHtml(voter.gpov_no)}</span></td>
+          <td class="center" data-label="Gender"><span class="gender-pill ${genderClass}">${escapeHtml(genderUpper || "-")}</span></td>
+          <td data-label="Voter Name"><strong>${escapeHtml(voter.voter_name)}</strong></td>
+          <td data-label="Father / Husband Name">${escapeHtml(voter.relation_name)}</td>
+          <td data-label="Voter ID"><span class="epic-code">${escapeHtml(voter.voter_id)}</span></td>
+          <td class="center" data-label="Photo">
+            <img
+              class="voter-photo"
+              src="${photoUrl}"
+              alt="Voter ${escapeHtml(voter.gpov_no)}"
+              loading="lazy"
+              onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2256%22 height=%2270%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23e2e8f0%22/><text x=%2250%25%22 y=%2252%25%22 font-size=%2210%22 text-anchor=%22middle%22 fill=%22%2364748b%22>No Photo</text></svg>'"
+            />
+          </td>
+        `;
+
+        const imgEl = tr.querySelector(".voter-photo");
+        imgEl.addEventListener("click", () => {
+          document.getElementById("modalImg").src = imgEl.src;
+          document.getElementById("modalName").textContent = `${voter.voter_name} (Line #${voter.gpov_no})`;
+          document.getElementById("modalMeta").textContent = `${voter.relation_name} | ${genderUpper} | Voter ID: ${voter.voter_id}`;
+          document.getElementById("photoModal").classList.add("open");
+        });
+
+        fragment.appendChild(tr);
+      });
+
+      resultsBody.innerHTML = "";
+      resultsBody.appendChild(fragment);
+    }
+
+    async function runSearch(resetPage = true) {
+      if (resetPage) currentPage = 1;
+
+      const params = new URLSearchParams();
+      const fields = ["gpovNo", "gender", "voterName", "relationName", "voterId"];
+
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const val = el.value.trim();
+        if (val !== "") {
+          params.append(el.name, val);
+        }
+      });
+
+      // Fetch full list so client-side pagination shows 1 - 100 of 3458 (Page 1 of 35)
+
+      const t0 = performance.now();
+      // Keep Views counter visible
+
+      try {
+        const res = await fetch(`${API_BASE}/api/voters/search?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const elapsed = Math.round(performance.now() - t0);
+
+        connDot.style.background = "#22c55e";
+        connDot.style.background = "#22c55e";
+
+        allMatchedResults = Array.isArray(data) ? data : (data.results || []);
+        renderCurrentPage();
+        updateCounters(allMatchedResults, elapsed);
+      } catch (err) {
+        connDot.style.background = "#ef4444";
+        connText.textContent = "Offline";
+        showToast("Backend API offline (/api/voters/search)", true);
+        resultsBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">Backend API offline (/api/voters/search). Check your server connection.</td>
+          </tr>`;
+      }
+    }
+
+    function dismissMobileKeyboard() {
+      if (document.activeElement && typeof document.activeElement.blur === "function") {
+        document.activeElement.blur();
+      }
+      searchForm.querySelectorAll("input, select").forEach(el => el.blur());
+    }
+
+    searchForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      dismissMobileKeyboard();
+      runSearch(true);
+      if (window.innerWidth <= 768) {
+        document.querySelector(".table-card").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    searchForm.querySelectorAll("input, select").forEach(el => {
+      el.addEventListener("input", () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => runSearch(true), 220);
+      });
+    });
+
+    clearBtn.addEventListener("click", () => {
+      searchForm.reset();
+      runSearch(true);
+    });
+
+    document.getElementById("closeModalBtn").addEventListener("click", () => {
+      document.getElementById("photoModal").classList.remove("open");
+    });
+
+    document.getElementById("photoModal").addEventListener("click", (e) => {
+      if (e.target.id === "photoModal") {
+        e.currentTarget.classList.remove("open");
+      }
+    });
+
+    function getOrCreateDeviceId() {
+      const STORAGE_KEY = "patharlapalli_voter_device_id";
+      let id = null;
+      try {
+        id = localStorage.getItem(STORAGE_KEY);
+        if (!id) {
+          id = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : ("dev-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10));
+          localStorage.setItem(STORAGE_KEY, id);
+        }
+      } catch (e) {
+        id = "dev-" + Math.random().toString(36).slice(2, 12);
+      }
+      return id;
+    }
+
+    async function registerDeviceView() {
+      try {
+        const res = await fetch(`${API_BASE}/api/views/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_id: getOrCreateDeviceId() })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (typeof data.views === "number") {
+          connDot.style.background = "#22c55e";
+          connText.textContent = `Views: ${data.views}`;
+        }
+      } catch (err) {
+        // Ignore if offline
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      registerDeviceView();
+      runSearch(true);
+    });
+  </script>
+</body>
+</html>
