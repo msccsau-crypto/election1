@@ -963,12 +963,12 @@
       try { localStorage.removeItem("patharlapalli_voter_device_id"); } catch (e) {}
       let id = null;
       try {
-        id = sessionStorage.getItem(STORAGE_KEY);
+        id = localStorage.getItem(STORAGE_KEY);
         if (!id) {
           id = (window.crypto && crypto.randomUUID)
             ? crypto.randomUUID()
             : ("ses-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10));
-          sessionStorage.setItem(STORAGE_KEY, id);
+          localStorage.setItem(STORAGE_KEY, id);
         }
       } catch (e) {
         id = "ses-" + Math.random().toString(36).slice(2, 12);
