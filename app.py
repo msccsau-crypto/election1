@@ -15,7 +15,7 @@ import uvicorn
 # ==========================================
 # CONFIGURATION
 # ==========================================
-XLSX_FILE = "Voter_List.xlsx"
+XLSX_FILE = "voter_list.xlsx"
 PHOTOS_FOLDER = "voter_photos"
 INDEX_HTML_FILE = "index.html"
 VIEWS_STATE_FILE = "site_views.json"
