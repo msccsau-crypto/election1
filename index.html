@@ -401,22 +401,27 @@
 
     /* Footer */
     footer {
-      background: black;
+      background: #ffffff;
       border-top: 1px solid var(--border);
       padding: 16px 18px;
       margin-top: auto;
     }
 
-        .footer-inner {
+    .footer-inner {
       max-width: 1200px;
       margin: 0 auto;
-      text-align: center;
-      font-size: 1 rem;
-      color:white;
-      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
     }
 
-
+    .footer-inner strong {
+      color: var(--primary);
+    }
 
     /* Photo Zoom Modal */
     .modal-backdrop {
@@ -613,7 +618,7 @@
   </header>
 
   <main class="container">
-    <!-- 5 Optional Search Fields -->
+    <!-- 6 Optional Search Fields -->
     <section class="search-panel">
       <form id="searchForm" autocomplete="off">
         <div class="search-grid">
@@ -642,7 +647,12 @@
           </div>
 
           <div class="field-group">
-            <label for="voterId">5. Voter ID</label>
+            <label for="houseNo">5. House Number</label>
+            <input type="text" id="houseNo" name="house_no" placeholder="e.g. 1-45, 2-10/A" />
+          </div>
+
+          <div class="field-group">
+            <label for="voterId">6. Voter ID</label>
             <input type="text" id="voterId" name="voter_id" placeholder="e.g. WIA1055038" />
           </div>
         </div>
@@ -671,13 +681,14 @@
               <th class="center">Gender</th>
               <th>Voter Name</th>
               <th>Father / Husband Name</th>
+              <th>House No</th>
               <th>Voter ID</th>
               <th class="center">Photo</th>
             </tr>
           </thead>
           <tbody id="resultsBody">
             <tr>
-              <td colspan="6" class="empty-state">
+              <td colspan="7" class="empty-state">
                 Loading first 100 voters...
               </td>
             </tr>
@@ -695,7 +706,9 @@
 
   <footer>
     <div class="footer-inner">
-      <p><strong>&copy; 2026 Design & Developed by Upendra </strong></p>
+      <span><strong>PATHARLAPALLI VOTERS CHECK LIST</strong> &bull; Electoral Roll Lookup Portal</span>
+      <span>100 Voters / Page &bull; Mobile &amp; Desktop Ready</span>
+    </div>
   </footer>
 
   <!-- Photo Zoom Modal -->
@@ -823,7 +836,7 @@
       if (sorted.length === 0) {
         resultsBody.innerHTML = `
           <tr>
-            <td colspan="6" class="empty-state">No matching voters found for the given filter(s).</td>
+            <td colspan="7" class="empty-state">No matching voters found for the given filter(s).</td>
           </tr>`;
         return;
       }
@@ -843,6 +856,7 @@
           <td class="center" data-label="Gender"><span class="gender-pill ${genderClass}">${escapeHtml(genderUpper || "-")}</span></td>
           <td data-label="Voter Name"><strong>${escapeHtml(voter.voter_name)}</strong></td>
           <td data-label="Father / Husband Name">${escapeHtml(voter.relation_name)}</td>
+          <td data-label="House No"><span class="epic-code">${escapeHtml(voter.house_no || "-")}</span></td>
           <td data-label="Voter ID"><span class="epic-code">${escapeHtml(voter.voter_id)}</span></td>
           <td class="center" data-label="Photo">
             <img
@@ -859,7 +873,7 @@
         imgEl.addEventListener("click", () => {
           document.getElementById("modalImg").src = imgEl.src;
           document.getElementById("modalName").textContent = `${voter.voter_name} (Line #${voter.gpov_no})`;
-          document.getElementById("modalMeta").textContent = `${voter.relation_name} | ${genderUpper} | Voter ID: ${voter.voter_id}`;
+          document.getElementById("modalMeta").textContent = `${voter.relation_name} | ${genderUpper} | H.No: ${voter.house_no || "-"} | Voter ID: ${voter.voter_id}`;
           document.getElementById("photoModal").classList.add("open");
         });
 
@@ -874,7 +888,7 @@
       if (resetPage) currentPage = 1;
 
       const params = new URLSearchParams();
-      const fields = ["gpovNo", "gender", "voterName", "relationName", "voterId"];
+      const fields = ["gpovNo", "gender", "voterName", "relationName", "houseNo", "voterId"];
 
       fields.forEach(id => {
         const el = document.getElementById(id);
@@ -885,10 +899,7 @@
         }
       });
 
-      // Fetch full list so client-side pagination shows 1 - 100 of 3458 (Page 1 of 35)
-
       const t0 = performance.now();
-      // Keep Views counter visible
 
       try {
         const res = await fetch(`${API_BASE}/api/voters/search?${params.toString()}`);
@@ -896,7 +907,6 @@
         const data = await res.json();
         const elapsed = Math.round(performance.now() - t0);
 
-        connDot.style.background = "#22c55e";
         connDot.style.background = "#22c55e";
 
         allMatchedResults = Array.isArray(data) ? data : (data.results || []);
@@ -908,7 +918,7 @@
         showToast("Backend API offline (/api/voters/search)", true);
         resultsBody.innerHTML = `
           <tr>
-            <td colspan="6" class="empty-state">Backend API offline (/api/voters/search). Check your server connection.</td>
+            <td colspan="7" class="empty-state">Backend API offline (/api/voters/search). Check your server connection.</td>
           </tr>`;
       }
     }
@@ -951,8 +961,9 @@
       }
     });
 
-function getOrCreateDeviceId() {
+    function getOrCreateDeviceId() {
       const STORAGE_KEY = "patharlapalli_voter_session_id";
+      try { localStorage.removeItem("patharlapalli_voter_device_id"); } catch (e) {}
       let id = null;
       try {
         id = sessionStorage.getItem(STORAGE_KEY);

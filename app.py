@@ -15,14 +15,14 @@ import uvicorn
 # ==========================================
 # CONFIGURATION
 # ==========================================
-XLSX_FILE = "voter_list.xlsx"
+XLSX_FILE = "Voter_List.xlsx"
 PHOTOS_FOLDER = "voter_photos"
 INDEX_HTML_FILE = "index.html"
 VIEWS_STATE_FILE = "site_views.json"
 
 # Pre-indexed in-memory stores (Read-only after startup = zero locks for 100+ concurrent users)
 VOTERS_BY_ID: dict[int, dict] = {}
-VOTERS_INDEX: list[tuple[dict, str, str, str]] = []
+VOTERS_INDEX: list[tuple[dict, str, str, str, str]] = []
 DEFAULT_TOP_100: list[dict] = []
 
 # Unique device/session view tracker (in RAM + lightweight JSON persistence)
@@ -95,6 +95,7 @@ def load_xlsx_into_ram():
     col_name = find_col(["VOTER NAME", "NAME"], 1)
     col_rel = find_col(["FATHER", "HUSBAND", "RELATION"], 2)
     col_gender = find_col(["GENDER", "SEX"], 3)
+    col_hno = find_col(["H NO", "H.NO", "HOUSE"], 5)
     col_epic = find_col(["VOTER ID", "EPIC"], 6)
 
     temp_map: dict[int, dict] = {}
@@ -109,6 +110,7 @@ def load_xlsx_into_ram():
         voter_name = str(row[col_name] or "").strip() if col_name < len(row) else ""
         relation_name = str(row[col_rel] or "").strip() if col_rel < len(row) else ""
         gender = str(row[col_gender] or "").strip().upper() if col_gender < len(row) else ""
+        house_no = str(row[col_hno] or "").strip() if col_hno < len(row) else ""
         voter_id = str(row[col_epic] or "").strip() if col_epic < len(row) else ""
 
         temp_map[gpov_no] = {
@@ -116,6 +118,7 @@ def load_xlsx_into_ram():
             "gender": gender,
             "voter_name": voter_name,
             "relation_name": relation_name,
+            "house_no": house_no,
             "voter_id": voter_id,
         }
 
@@ -128,6 +131,7 @@ def load_xlsx_into_ram():
             temp_map[gid],
             temp_map[gid]["voter_name"].lower(),
             temp_map[gid]["relation_name"].lower(),
+            temp_map[gid]["house_no"].lower(),
             temp_map[gid]["voter_id"].lower(),
         )
         for gid in sorted_ids
@@ -176,8 +180,8 @@ def health_check():
 @app.post("/api/views/register")
 def register_device_view(payload: VisitPayload):
     """
-    Counts 1 view per unique device/browser. Repeated searches or refreshes
-    from the same device return the current total without incrementing again.
+    Counts 1 view per unique browser session. Repeated searches or refreshes
+    within the same session return the current total without incrementing again.
     """
     dev_id = (payload.device_id or "").strip()[:64]
     if not dev_id:
@@ -203,25 +207,29 @@ def search_voters(
     gender: Optional[str] = Query(None),
     voter_name: Optional[str] = Query(None),
     relation_name: Optional[str] = Query(None),
+    house_no: Optional[str] = Query(None),
     voter_id: Optional[str] = Query(None),
     default_limit: Optional[int] = Query(None),
 ):
     q_gender = gender.strip().upper() if gender else ""
     q_name = voter_name.strip().lower() if voter_name else ""
     q_rel = relation_name.strip().lower() if relation_name else ""
+    q_hno = house_no.strip().lower() if house_no else ""
     q_epic = voter_id.strip().lower() if voter_id else ""
 
-    if gpov_no is None and not (q_gender or q_name or q_rel or q_epic):
+    has_other_filters = bool(q_gender or q_name or q_rel or q_hno or q_epic)
+
+    if gpov_no is None and not has_other_filters:
         if default_limit == 100:
             return DEFAULT_TOP_100
         return [item[0] for item in VOTERS_INDEX]
 
-    if gpov_no is not None and not (q_gender or q_name or q_rel or q_epic):
+    if gpov_no is not None and not has_other_filters:
         rec = VOTERS_BY_ID.get(gpov_no)
         return [rec] if rec else []
 
     results = []
-    for public_rec, s_name, s_rel, s_epic in VOTERS_INDEX:
+    for public_rec, s_name, s_rel, s_hno, s_epic in VOTERS_INDEX:
         if gpov_no is not None and public_rec["gpov_no"] != gpov_no:
             continue
         if q_gender and public_rec["gender"] != q_gender:
@@ -229,6 +237,8 @@ def search_voters(
         if q_name and q_name not in s_name:
             continue
         if q_rel and q_rel not in s_rel:
+            continue
+        if q_hno and q_hno not in s_hno:
             continue
         if q_epic and q_epic not in s_epic:
             continue
