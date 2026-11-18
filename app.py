@@ -1,5 +1,4 @@
 import os
-import json
 import threading
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -18,16 +17,19 @@ import uvicorn
 XLSX_FILE = "voter_list.xlsx"
 PHOTOS_FOLDER = "voter_photos"
 INDEX_HTML_FILE = "index.html"
-VIEWS_STATE_FILE = "site_views.json"
+VIEWS_COLUMN_HEADER = "VIEWS"  # Single specified column in your .xlsx sheet (Row 1 = VIEWS, Row 2 = count)
 
 # Pre-indexed in-memory stores (Read-only after startup = zero locks for 100+ concurrent users)
 VOTERS_BY_ID: dict[int, dict] = {}
 VOTERS_INDEX: list[tuple[dict, str, str, str, str]] = []
 DEFAULT_TOP_100: list[dict] = []
 
-# Unique device/session view tracker (in RAM + lightweight JSON persistence)
-UNIQUE_DEVICES: set[str] = set()
+# Session-based view counter synced to the single cell (Row 2 of VIEWS column) in XLSX_FILE
+UNIQUE_SESSIONS: set[str] = set()
+TOTAL_VIEWS_COUNT: int = 0
+VIEWS_COL_INDEX: int = 10
 VIEWS_LOCK = threading.Lock()
+SYNC_TIMER: Optional[threading.Timer] = None
 
 
 class VisitPayload(BaseModel):
@@ -43,33 +45,44 @@ class CachedStaticFiles(StaticFiles):
         return response
 
 
-def load_views_from_disk():
-    """Loads previously recorded unique device IDs if available on disk."""
-    global UNIQUE_DEVICES
-    if not os.path.exists(VIEWS_STATE_FILE):
+def sync_views_to_xlsx():
+    """Background worker: updates ONLY Row 2 of the single VIEWS column in the .xlsx sheet."""
+    if not os.path.exists(XLSX_FILE):
         return
-    try:
-        with open(VIEWS_STATE_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            UNIQUE_DEVICES = {str(x) for x in data.get("devices", []) if x}
-    except Exception:
-        UNIQUE_DEVICES = set()
+    with VIEWS_LOCK:
+        count_snapshot = TOTAL_VIEWS_COUNT
+        col_idx = VIEWS_COL_INDEX
 
-
-def save_views_to_disk(devices_snapshot: list[str]):
-    """Atomically persists unique device IDs to local JSON."""
     try:
-        tmp_file = f"{VIEWS_STATE_FILE}.tmp"
-        with open(tmp_file, "w", encoding="utf-8") as f:
-            json.dump({"total_views": len(devices_snapshot), "devices": devices_snapshot}, f)
-        os.replace(tmp_file, VIEWS_STATE_FILE)
-    except Exception:
+        wb = openpyxl.load_workbook(XLSX_FILE)
+        ws = wb.active
+        ws.cell(row=1, column=col_idx, value=VIEWS_COLUMN_HEADER)
+        ws.cell(row=2, column=col_idx, value=int(count_snapshot))
+
+        tmp_xlsx = f"{XLSX_FILE}.tmp.xlsx"
+        wb.save(tmp_xlsx)
+        wb.close()
+        os.replace(tmp_xlsx, XLSX_FILE)
+    except PermissionError:
+        # Skips silently if the .xlsx is currently open in Excel on your local PC
         pass
+    except Exception as e:
+        print(f"[XLSX Views Sync Warning]: {e}")
+
+
+def schedule_views_xlsx_sync():
+    """Debounces .xlsx writes so rapid visits write to disk at most once every 3 seconds."""
+    global SYNC_TIMER
+    if SYNC_TIMER is not None:
+        SYNC_TIMER.cancel()
+    SYNC_TIMER = threading.Timer(3.0, sync_views_to_xlsx)
+    SYNC_TIMER.daemon = True
+    SYNC_TIMER.start()
 
 
 def load_xlsx_into_ram():
-    """Loads the .xlsx voter sheet once into RAM at startup and pre-builds response objects."""
-    global VOTERS_BY_ID, VOTERS_INDEX, DEFAULT_TOP_100
+    """Loads the .xlsx voter sheet AND reads the initial view count from Row 2 of the VIEWS column."""
+    global VOTERS_BY_ID, VOTERS_INDEX, DEFAULT_TOP_100, TOTAL_VIEWS_COUNT, VIEWS_COL_INDEX
 
     if not os.path.exists(XLSX_FILE):
         raise FileNotFoundError(f"Excel file '{XLSX_FILE}' not found in {os.getcwd()}")
@@ -98,9 +111,31 @@ def load_xlsx_into_ram():
     col_hno = find_col(["H NO", "H.NO", "HOUSE"], 5)
     col_epic = find_col(["VOTER ID", "EPIC"], 6)
 
+    # Locate the single VIEWS column (or assign the next empty column after existing headers)
+    if VIEWS_COLUMN_HEADER in headers:
+        col_views_zero = headers.index(VIEWS_COLUMN_HEADER)
+        VIEWS_COL_INDEX = col_views_zero + 1
+    else:
+        col_views_zero = -1
+        VIEWS_COL_INDEX = len(headers) + 1
+
     temp_map: dict[int, dict] = {}
+    first_data_row = True
+
     for row in rows_iter:
-        if not row or row[col_gpov] is None:
+        if not row:
+            continue
+
+        # Read the single-row view count from Row 2 of the VIEWS column
+        if first_data_row:
+            first_data_row = False
+            if col_views_zero != -1 and col_views_zero < len(row) and row[col_views_zero] is not None:
+                try:
+                    TOTAL_VIEWS_COUNT = int(float(str(row[col_views_zero]).strip()))
+                except ValueError:
+                    TOTAL_VIEWS_COUNT = 0
+
+        if row[col_gpov] is None:
             continue
         try:
             gpov_no = int(str(row[col_gpov]).strip())
@@ -110,7 +145,10 @@ def load_xlsx_into_ram():
         voter_name = str(row[col_name] or "").strip() if col_name < len(row) else ""
         relation_name = str(row[col_rel] or "").strip() if col_rel < len(row) else ""
         gender = str(row[col_gender] or "").strip().upper() if col_gender < len(row) else ""
-        house_no = str(row[col_hno] or "").strip() if col_hno < len(row) else ""
+
+        raw_hno = row[col_hno] if col_hno < len(row) and row[col_hno] is not None else ""
+        house_no = str(int(raw_hno)) if isinstance(raw_hno, float) and raw_hno.is_integer() else str(raw_hno).strip()
+
         voter_id = str(row[col_epic] or "").strip() if col_epic < len(row) else ""
 
         temp_map[gpov_no] = {
@@ -123,6 +161,10 @@ def load_xlsx_into_ram():
         }
 
     wb.close()
+
+    # If the VIEWS column didn't exist yet in the .xlsx, create it with 0 in Row 2
+    if col_views_zero == -1:
+        sync_views_to_xlsx()
 
     sorted_ids = sorted(temp_map.keys())
     VOTERS_BY_ID = temp_map
@@ -137,13 +179,12 @@ def load_xlsx_into_ram():
         for gid in sorted_ids
     ]
     DEFAULT_TOP_100 = [item[0] for item in VOTERS_INDEX[:100]]
-    print(f"Loaded {len(VOTERS_INDEX)} voters from '{XLSX_FILE}' into RAM.")
+    print(f"Loaded {len(VOTERS_INDEX)} voters and {TOTAL_VIEWS_COUNT} initial views from '{XLSX_FILE}'.")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs(PHOTOS_FOLDER, exist_ok=True)
-    load_views_from_disk()
     load_xlsx_into_ram()
     yield
 
@@ -173,32 +214,33 @@ def health_check():
     return {
         "status": "ok",
         "voters_loaded": len(VOTERS_INDEX),
-        "total_views": len(UNIQUE_DEVICES),
+        "total_views": TOTAL_VIEWS_COUNT,
     }
 
 
 @app.post("/api/views/register")
-def register_device_view(payload: VisitPayload):
+def register_session_view(payload: VisitPayload):
     """
-    Counts 1 view per unique browser session. Repeated searches or refreshes
-    within the same session return the current total without incrementing again.
+    Increments TOTAL_VIEWS_COUNT by 1 per new browser session and persists
+    it into the single cell (Row 2 of the VIEWS column) in the .xlsx file.
     """
-    dev_id = (payload.device_id or "").strip()[:64]
-    if not dev_id:
-        return {"views": len(UNIQUE_DEVICES)}
+    global TOTAL_VIEWS_COUNT
+    session_id = (payload.device_id or "").strip()[:64]
+    if not session_id:
+        return {"views": TOTAL_VIEWS_COUNT}
 
     is_new = False
     with VIEWS_LOCK:
-        if dev_id not in UNIQUE_DEVICES:
-            UNIQUE_DEVICES.add(dev_id)
+        if session_id not in UNIQUE_SESSIONS:
+            UNIQUE_SESSIONS.add(session_id)
+            TOTAL_VIEWS_COUNT += 1
             is_new = True
-        total_views = len(UNIQUE_DEVICES)
-        snapshot = list(UNIQUE_DEVICES) if is_new else None
+        current_total = TOTAL_VIEWS_COUNT
 
-    if is_new and snapshot is not None:
-        save_views_to_disk(snapshot)
+    if is_new:
+        schedule_views_xlsx_sync()
 
-    return {"views": total_views}
+    return {"views": current_total}
 
 
 @app.get("/api/voters/search")
